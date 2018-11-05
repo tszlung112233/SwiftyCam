@@ -269,7 +269,7 @@ open class SwiftyCamViewController: UIViewController {
 		super.viewDidLoad()
         previewLayer = PreviewView(frame: view.frame, videoGravity: videoGravity)
         view.addSubview(previewLayer)
-        view.sendSubview(toBack: previewLayer)
+    view.sendSubviewToBack(previewLayer)
 
 		// Add Gesture Recognizers
 
@@ -845,9 +845,9 @@ open class SwiftyCamViewController: UIViewController {
 			alertController.addAction(UIAlertAction(title: NSLocalizedString("OK", comment: "Alert OK button"), style: .cancel, handler: nil))
 			alertController.addAction(UIAlertAction(title: NSLocalizedString("Settings", comment: "Alert button to open Settings"), style: .default, handler: { action in
 				if #available(iOS 10.0, *) {
-					UIApplication.shared.openURL(URL(string: UIApplicationOpenSettingsURLString)!)
+					UIApplication.shared.openURL(URL(string: UIApplication.openSettingsURLString)!)
 				} else {
-					if let appSettings = URL(string: UIApplicationOpenSettingsURLString) {
+					if let appSettings = URL(string: UIApplication.openSettingsURLString) {
 						UIApplication.shared.openURL(appSettings)
 					}
 				}
@@ -977,18 +977,19 @@ open class SwiftyCamViewController: UIViewController {
 			return
 		}
 
-        guard audioEnabled == true else {
-            return
-        }
+    guard audioEnabled == true else {
+      return
+    }
 
-		do{
-            if #available(iOS 10.0, *) {
-                try AVAudioSession.sharedInstance().setCategory(AVAudioSessionCategoryPlayAndRecord,
-                                                                with: [.mixWithOthers, .allowBluetooth, .allowAirPlay, .allowBluetoothA2DP])
-            } else {
-                try AVAudioSession.sharedInstance().setCategory(AVAudioSessionCategoryPlayAndRecord,
-                                                                with: [.mixWithOthers, .allowBluetooth])
-            }
+		do {
+      if #available(iOS 10.0, *) {
+        try AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .default, options: [.mixWithOthers, .allowBluetooth, .allowAirPlay, .allowBluetoothA2DP])
+      } else {
+        let options: [AVAudioSession.CategoryOptions] = [.mixWithOthers, .allowBluetooth]
+        let category = AVAudioSession.Category.playAndRecord
+        let selector = NSSelectorFromString("setCategory:withOptions:error:")
+        AVAudioSession.sharedInstance().perform(selector, with: category, with: options)
+      }
 			session.automaticallyConfiguresApplicationAudioSession = false
 		}
 		catch {
@@ -1058,9 +1059,9 @@ extension SwiftyCamViewController : AVCaptureFileOutputRecordingDelegate {
 
     public func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
         if let currentBackgroundRecordingID = backgroundRecordingID {
-            backgroundRecordingID = UIBackgroundTaskInvalid
+            backgroundRecordingID = UIBackgroundTaskIdentifier(rawValue: convertFromUIBackgroundTaskIdentifier(UIBackgroundTaskIdentifier.invalid))
 
-            if currentBackgroundRecordingID != UIBackgroundTaskInvalid {
+            if currentBackgroundRecordingID != UIBackgroundTaskIdentifier.invalid {
                 UIApplication.shared.endBackgroundTask(currentBackgroundRecordingID)
             }
         }
@@ -1239,4 +1240,14 @@ extension SwiftyCamViewController : UIGestureRecognizerDelegate {
 		}
 		return true
 	}
+}
+
+// Helper function inserted by Swift 4.2 migrator.
+fileprivate func convertFromAVAudioSessionCategory(_ input: AVAudioSession.Category) -> String {
+	return input.rawValue
+}
+
+// Helper function inserted by Swift 4.2 migrator.
+fileprivate func convertFromUIBackgroundTaskIdentifier(_ input: UIBackgroundTaskIdentifier) -> Int {
+	return input.rawValue
 }
